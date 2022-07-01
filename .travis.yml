@@ -1,8 +1,5 @@
 dist: trusty
 
-#services:
-#  - docker
-
 language: python
 
 python:
@@ -19,15 +16,6 @@ script:
   # test import
   - python -c "import spatialOmics"
 
-  # run unit tests
-  - python -m pytest -sv --cov=spatialOmics --cov-fail-under=65
-
-  # static type checking
-  - python -m mypy spatialOmics
-  # style checking
-  - python -m black spatialOmics --check --diff --color
-  - python -m flake8 --per-file-ignores="__init__.py:F401" spatialOmics
-
 # the following stages only start if the "test" stage above all succeed
 jobs:
   include:
@@ -43,7 +31,8 @@ jobs:
           # Set in the settings page of your repository, as a secure variable
           # see https://docs.travis-ci.com/user/deployment/pages/#setting-the-github-token
           local_dir: docs/_build/html
-          github_url: github.ibm.com
+          github_url: github.com
+          repo: AI4SCR/spatial-omics
           on:
             branch: master
 
