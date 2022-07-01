@@ -16,7 +16,6 @@ script:
   # test import
   - python -c "import spatialOmics"
 
-# the following stages only start if the "test" stage above all succeed
 jobs:
   include:
     - stage: Documentation
