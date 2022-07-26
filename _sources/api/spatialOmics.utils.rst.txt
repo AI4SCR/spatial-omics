@@ -1,0 +1,7 @@
+spatialOmics.utils module
+=========================
+
+.. automodule:: spatialOmics.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:

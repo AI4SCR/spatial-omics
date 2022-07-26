@@ -1,0 +1,638 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>spatialOmics.spatialOmics &mdash; spatialOmics  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> spatialOmics
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../source/wealth_dynamics_md.html">Example page with markdown source</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/spatialOmics.html">API of the spatialOmics package</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">spatialOmics</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>spatialOmics.spatialOmics</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for spatialOmics.spatialOmics</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
+<span class="kn">from</span> <span class="nn">skimage</span> <span class="kn">import</span> <span class="n">io</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
+<span class="kn">from</span> <span class="nn">scipy.sparse</span> <span class="kn">import</span> <span class="n">issparse</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+
+<span class="kn">import</span> <span class="nn">h5py</span>
+
+
+<span class="c1"># %%</span>
+<div class="viewcode-block" id="SpatialOmics"><a class="viewcode-back" href="../../api/spatialOmics.spatialOmics.html#spatialOmics.spatialOmics.SpatialOmics">[docs]</a><span class="k">class</span> <span class="nc">SpatialOmics</span><span class="p">:</span>
+    <span class="n">cmaps</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;default&#39;</span><span class="p">:</span> <span class="n">sns</span><span class="o">.</span><span class="n">color_palette</span><span class="p">(</span><span class="s1">&#39;Reds&#39;</span><span class="p">,</span> <span class="n">as_cmap</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+        <span class="s1">&#39;category&#39;</span><span class="p">:</span> <span class="n">sns</span><span class="o">.</span><span class="n">color_palette</span><span class="p">(</span><span class="s1">&#39;Set3&#39;</span><span class="p">,</span> <span class="n">as_cmap</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">graph_engine</span> <span class="o">=</span> <span class="s1">&#39;networkx&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">=</span> <span class="mi">42</span>  <span class="c1"># for reproducibility</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pickle_file</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>  <span class="c1"># backend store</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h5py_file</span> <span class="o">=</span> <span class="s1">&#39;spatialOmics.h5py&#39;</span>  <span class="c1"># backend store</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">obs</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># container for observation level features</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obsm</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># container for multidimensional observation level features</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spl</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>  <span class="c1"># container for sample level features</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">splm</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># container for multidimensional sample level features</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">var</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># container with variable descriptions of X</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># container for cell level expression data of each spl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">G</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># graphs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">uns</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># unstructured container</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">uns</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;cmaps&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">cmaps</span><span class="p">,</span>
+                         <span class="s1">&#39;cmap_labels&#39;</span><span class="p">:</span> <span class="p">{}})</span>
+
+        <span class="c1"># self.obs_keys = None  # list of observations in self.obs.index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spl_keys</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># list of samples in self.spl.index</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">images</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">masks</span> <span class="o">=</span> <span class="p">{}</span>
+
+<div class="viewcode-block" id="SpatialOmics.add_image"><a class="viewcode-back" href="../../api/spatialOmics.spatialOmics.html#spatialOmics.spatialOmics.SpatialOmics.add_image">[docs]</a>    <span class="k">def</span> <span class="nf">add_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spl</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">in_memory</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">to_store</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add the image for a given sample&quot;&quot;&quot;</span>
+        <span class="n">im</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">plugin</span><span class="o">=</span><span class="s2">&quot;tifffile&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">to_store</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;images/</span><span class="si">{</span><span class="n">spl</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h5py_file</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="k">del</span> <span class="n">f</span><span class="p">[</span><span class="n">path</span><span class="p">]</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">im</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">in_memory</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">spl</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="n">spl</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="n">spl</span><span class="p">]</span> <span class="o">=</span> <span class="n">im</span></div>
+
+<div class="viewcode-block" id="SpatialOmics.get_image"><a class="viewcode-back" href="../../api/spatialOmics.spatialOmics.html#spatialOmics.spatialOmics.SpatialOmics.get_image">[docs]</a>    <span class="k">def</span> <span class="nf">get_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spl</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the image of a given sample&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">spl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="n">spl</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h5py_file</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;images/</span><span class="si">{</span><span class="n">spl</span><span class="si">}</span><span class="s1">&#39;</span>
+                <span class="k">if</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">f</span><span class="p">[</span><span class="n">path</span><span class="p">][:]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;no images exists for </span><span class="si">{</span><span class="n">spl</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SpatialOmics.add_mask"><a class="viewcode-back" href="../../api/spatialOmics.spatialOmics.html#spatialOmics.spatialOmics.SpatialOmics.add_mask">[docs]</a>    <span class="k">def</span> <span class="nf">add_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spl</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">in_memory</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">to_store</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add a mask for a given sample&quot;&quot;&quot;</span>
+        <span class="n">im</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">file</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">im</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;provided mask image is not 2D&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">to_store</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;masks/</span><span class="si">{</span><span class="n">spl</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">mask</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h5py_file</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="k">del</span> <span class="n">f</span><span class="p">[</span><span class="n">path</span><span class="p">]</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">im</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">in_memory</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">spl</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">[</span><span class="n">spl</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">[</span><span class="n">spl</span><span class="p">][</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">im</span></div>
+
+<div class="viewcode-block" id="SpatialOmics.get_mask"><a class="viewcode-back" href="../../api/spatialOmics.spatialOmics.html#spatialOmics.spatialOmics.SpatialOmics.get_mask">[docs]</a>    <span class="k">def</span> <span class="nf">get_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spl</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get a particular mask of a given sample&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">spl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">masks</span> <span class="ow">and</span> <span class="n">mask</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">[</span><span class="n">spl</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">[</span><span class="n">spl</span><span class="p">][</span><span class="n">mask</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h5py_file</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;masks/</span><span class="si">{</span><span class="n">spl</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">mask</span><span class="si">}</span><span class="s1">&#39;</span>
+                <span class="k">if</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">f</span><span class="p">[</span><span class="n">path</span><span class="p">][</span><span class="o">...</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;no </span><span class="si">{</span><span class="n">mask</span><span class="si">}</span><span class="s1"> mask exists for </span><span class="si">{</span><span class="n">spl</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obs</span><span class="p">]</span>
+
+        <span class="n">cols_spl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spl</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
+
+        <span class="n">cols_obs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="p">[</span><span class="n">cols_obs</span><span class="o">.</span><span class="n">update</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">columns</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obs</span><span class="p">]</span>
+        <span class="n">cols_obs</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="n">cols_obs</span><span class="p">]</span>
+
+        <span class="n">cols_var</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="p">[</span><span class="n">cols_var</span><span class="o">.</span><span class="n">update</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">columns</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">]</span>
+        <span class="n">cols_var</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="n">cols_var</span><span class="p">]</span>
+
+        <span class="n">mask_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="p">[</span><span class="n">mask_names</span><span class="o">.</span><span class="n">update</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">]</span>
+        <span class="n">mask_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">mask_names</span><span class="p">]</span>
+
+        <span class="n">graph_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="p">[</span><span class="n">graph_names</span><span class="o">.</span><span class="n">update</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="p">]</span>
+        <span class="n">graph_names</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="n">graph_names</span><span class="p">]</span>
+
+        <span class="n">s</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">SpatialOmics object with </span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">l</span><span class="p">)</span><span class="si">}</span><span class="s2"> observations across </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">l</span><span class="p">)</span><span class="si">}</span><span class="s2"> samples.</span>
+<span class="s2">    X: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">)</span><span class="si">}</span><span class="s2"> samples,</span>
+<span class="s2">    spl: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spl</span><span class="p">)</span><span class="si">}</span><span class="s2"> samples,</span>
+<span class="s2">        columns: </span><span class="si">{</span><span class="n">cols_spl</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">    obs: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spl</span><span class="p">)</span><span class="si">}</span><span class="s2"> samples,</span>
+<span class="s2">        columns: </span><span class="si">{</span><span class="n">cols_obs</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">    var: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">)</span><span class="si">}</span><span class="s2"> samples,</span>
+<span class="s2">        columns: </span><span class="si">{</span><span class="n">cols_var</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">    G: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="p">)</span><span class="si">}</span><span class="s2"> samples,</span>
+<span class="s2">        keys: </span><span class="si">{</span><span class="n">graph_names</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">    masks: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">)</span><span class="si">}</span><span class="s2"> samples</span>
+<span class="s2">        keys: </span><span class="si">{</span><span class="n">mask_names</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">    images: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">)</span><span class="si">}</span><span class="s2"> samples&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">s</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spl</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SpatialOmics.to_h5py"><a class="viewcode-back" href="../../api/spatialOmics.spatialOmics.html#spatialOmics.spatialOmics.SpatialOmics.to_h5py">[docs]</a>    <span class="k">def</span> <span class="nf">to_h5py</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file: file to write to, defaults to self.h5py_file</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h5py_file</span>
+
+        <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s1">&#39;h5py_file&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">h5py_file</span><span class="p">)</span>
+
+            <span class="c1"># obsm</span>
+            <span class="k">for</span> <span class="n">spl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obsm</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;obsm/</span><span class="si">{</span><span class="n">spl</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="n">spl</span><span class="p">])</span>
+
+            <span class="c1"># images</span>
+            <span class="k">for</span> <span class="n">spl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">:</span>
+                <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="n">spl</span><span class="p">]</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;images/</span><span class="si">{</span><span class="n">spl</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">img</span><span class="p">)</span>
+
+            <span class="c1"># masks</span>
+            <span class="k">for</span> <span class="n">spl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">[</span><span class="n">spl</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">msk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">[</span><span class="n">spl</span><span class="p">][</span><span class="n">key</span><span class="p">]</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;masks/</span><span class="si">{</span><span class="n">spl</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">msk</span><span class="p">)</span>
+
+            <span class="c1"># uns</span>
+            <span class="c1"># TODO: currently we do not support storing uns to h5py due to datatype restrictions</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">uns</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s1">&#39;warning: in the current implementation, the `uns` attribute is not stored to h5py file. Use `to_pickle` instead&#39;</span><span class="p">)</span>
+                <span class="c1"># f.attrs[&#39;uns&#39;] = {}</span>
+                <span class="c1"># keys = self.uns.keys()</span>
+                <span class="c1"># print_warning = False</span>
+                <span class="c1"># for key in keys:</span>
+                <span class="c1">#     if key in [&#39;cmaps&#39;, &#39;cmap_labels&#39;]:</span>
+                <span class="c1">#         f.attrs.update(self.uns[key])</span>
+                <span class="c1">#     else:</span>
+                <span class="c1">#         print_warning = True</span>
+                <span class="c1"># if print_warning:</span>
+
+        <span class="c1"># we need to write the dataframes outside the context manager because the file is locked</span>
+        <span class="c1"># spl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spl</span><span class="o">.</span><span class="n">to_hdf</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="s1">&#39;spl&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;table&quot;</span><span class="p">)</span>
+
+        <span class="c1"># var</span>
+        <span class="k">for</span> <span class="n">spl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">:</span>
+            <span class="c1"># use pandas function</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">[</span><span class="n">spl</span><span class="p">]</span><span class="o">.</span><span class="n">to_hdf</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;var/</span><span class="si">{</span><span class="n">spl</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;table&quot;</span><span class="p">)</span>
+
+        <span class="c1"># X</span>
+        <span class="k">for</span> <span class="n">spl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">:</span>
+            <span class="c1"># use pandas function</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">spl</span><span class="p">]</span><span class="o">.</span><span class="n">to_hdf</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;X/</span><span class="si">{</span><span class="n">spl</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;table&quot;</span><span class="p">)</span>
+
+        <span class="c1"># G</span>
+        <span class="k">for</span> <span class="n">spl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="p">[</span><span class="n">spl</span><span class="p">]:</span>
+                <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="p">[</span><span class="n">spl</span><span class="p">][</span><span class="n">key</span><span class="p">]</span>
+                <span class="n">df</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">to_pandas_edgelist</span><span class="p">(</span><span class="n">g</span><span class="p">)</span>
+
+                <span class="c1"># use pandas function</span>
+                <span class="n">df</span><span class="o">.</span><span class="n">to_hdf</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;G/</span><span class="si">{</span><span class="n">spl</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;table&quot;</span><span class="p">)</span>
+
+        <span class="c1"># obs</span>
+        <span class="k">for</span> <span class="n">spl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obs</span><span class="p">:</span>
+            <span class="c1"># use pandas function</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">spl</span><span class="p">]</span><span class="o">.</span><span class="n">to_hdf</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;obs/</span><span class="si">{</span><span class="n">spl</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;table&quot;</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;File `</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">file</span><span class="p">)</span><span class="si">}</span><span class="s1">` saved to </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">file</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;File size: </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">)</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1"> MB&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SpatialOmics.from_h5py"><a class="viewcode-back" href="../../api/spatialOmics.spatialOmics.html#spatialOmics.spatialOmics.SpatialOmics.from_h5py">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_h5py</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file: h5py file from which to reconstruct SpatialOmics instance</span>
+<span class="sd">            include_images: Whether to load images into memory</span>
+<span class="sd">            include_mask: Whether to load masks into memory</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            SpatialOmics instance</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">so</span> <span class="o">=</span> <span class="n">SpatialOmics</span><span class="p">()</span>
+
+        <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">so</span><span class="o">.</span><span class="n">h5py_file</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;h5py_file&#39;</span><span class="p">][</span><span class="o">...</span><span class="p">])</span>
+
+            <span class="c1"># obs</span>
+            <span class="k">if</span> <span class="s1">&#39;obs&#39;</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">spl</span> <span class="ow">in</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;obs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">so</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">spl</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_hdf</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;obs/</span><span class="si">{</span><span class="n">spl</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+            <span class="c1"># obsm</span>
+            <span class="k">if</span> <span class="s1">&#39;obsm&#39;</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">spl</span> <span class="ow">in</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;obsm&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">so</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="n">spl</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;obsm/</span><span class="si">{</span><span class="n">spl</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">][</span><span class="o">...</span><span class="p">]</span>
+
+            <span class="c1"># spl</span>
+            <span class="n">so</span><span class="o">.</span><span class="n">spl</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_hdf</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="s1">&#39;spl&#39;</span><span class="p">)</span>
+
+            <span class="c1"># var</span>
+            <span class="k">if</span> <span class="s1">&#39;var&#39;</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">spl</span> <span class="ow">in</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;var&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">so</span><span class="o">.</span><span class="n">var</span><span class="p">[</span><span class="n">spl</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_hdf</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;var/</span><span class="si">{</span><span class="n">spl</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+            <span class="c1"># X</span>
+            <span class="k">if</span> <span class="s1">&#39;X&#39;</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">spl</span> <span class="ow">in</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;X&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">so</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">spl</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_hdf</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;X/</span><span class="si">{</span><span class="n">spl</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+            <span class="c1"># G</span>
+            <span class="k">if</span> <span class="s1">&#39;G&#39;</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">spl</span> <span class="ow">in</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;G&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">spl</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">so</span><span class="o">.</span><span class="n">G</span><span class="p">:</span>
+                        <span class="n">so</span><span class="o">.</span><span class="n">G</span><span class="p">[</span><span class="n">spl</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">f</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;G/</span><span class="si">{</span><span class="n">spl</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                        <span class="n">so</span><span class="o">.</span><span class="n">G</span><span class="p">[</span><span class="n">spl</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_pandas_edgelist</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">read_hdf</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;G/</span><span class="si">{</span><span class="n">spl</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">))</span>
+
+            <span class="c1"># images</span>
+            <span class="k">if</span> <span class="s1">&#39;images&#39;</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">spl</span> <span class="ow">in</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;images&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">spl</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">so</span><span class="o">.</span><span class="n">images</span><span class="p">:</span>
+                        <span class="n">so</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="n">spl</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="n">so</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="n">spl</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;images/</span><span class="si">{</span><span class="n">spl</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">][</span><span class="o">...</span><span class="p">]</span>
+
+            <span class="c1"># masks</span>
+            <span class="k">if</span> <span class="s1">&#39;masks&#39;</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">spl</span> <span class="ow">in</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;masks&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">spl</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">so</span><span class="o">.</span><span class="n">masks</span><span class="p">:</span>
+                        <span class="n">so</span><span class="o">.</span><span class="n">masks</span><span class="p">[</span><span class="n">spl</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">f</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;masks/</span><span class="si">{</span><span class="n">spl</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">]:</span>
+                        <span class="n">so</span><span class="o">.</span><span class="n">masks</span><span class="p">[</span><span class="n">spl</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;masks/</span><span class="si">{</span><span class="n">spl</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">][</span><span class="o">...</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">so</span></div>
+
+<div class="viewcode-block" id="SpatialOmics.to_pickle"><a class="viewcode-back" href="../../api/spatialOmics.spatialOmics.html#spatialOmics.spatialOmics.SpatialOmics.to_pickle">[docs]</a>    <span class="k">def</span> <span class="nf">to_pickle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Save spatialOmics instance to pickle.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file: file to which instance is saved.</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;This version does not yet support saving pickled instances&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SpatialOmics.from_pickle"><a class="viewcode-back" href="../../api/spatialOmics.spatialOmics.html#spatialOmics.spatialOmics.SpatialOmics.from_pickle">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_pickle</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Load spatialOmics instance from pickled file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file: file to un-pickle</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            spatialOmics instance</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;This version does not yet support reading pickled instances&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SpatialOmics.copy"><a class="viewcode-back" href="../../api/spatialOmics.spatialOmics.html#spatialOmics.spatialOmics.SpatialOmics.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;copy IMCData without copying graphs, masks and tiffstacks&quot;&quot;&quot;</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">obs</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">obs</span><span class="p">)</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">spl</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spl</span><span class="p">)</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">var</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">)</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">)</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">uns</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uns</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">c</span></div>
+
+<div class="viewcode-block" id="SpatialOmics.deepcopy"><a class="viewcode-back" href="../../api/spatialOmics.spatialOmics.html#spatialOmics.spatialOmics.SpatialOmics.deepcopy">[docs]</a>    <span class="k">def</span> <span class="nf">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SpatialOmics.from_annData"><a class="viewcode-back" href="../../api/spatialOmics.spatialOmics.html#spatialOmics.spatialOmics.SpatialOmics.from_annData">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">from_annData</span><span class="p">(</span><span class="n">ad</span><span class="p">,</span> <span class="n">img_container</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+          <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;sample_id&#39;</span><span class="p">,</span>
+          <span class="n">img_layer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;image&#39;</span><span class="p">,</span>
+          <span class="n">segmentation_layers</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;segmented_watershed&#39;</span><span class="p">]):</span>
+        <span class="sd">&quot;&quot;&quot;Converts a AnnData instance to a SpatialOmics instance.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ad: AnnData object</span>
+<span class="sd">            img_container: Squidpy Image Container</span>
+<span class="sd">            sample_id: column name that identifies different libraries in ad.obs</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            SpatialOmics</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">sample_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ad</span><span class="o">.</span><span class="n">obs</span><span class="p">:</span>
+            <span class="n">sample_name</span> <span class="o">=</span> <span class="s1">&#39;spl_0&#39;</span>
+            <span class="n">ad</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">sample_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">sample_name</span>
+            <span class="n">ad</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">sample_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">sample_id</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;category&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ad</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">sample_id</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;more than 1 sample_id present in ad.obs[sample_id].</span>
+<span class="s2">            Please process each each sample individually.&quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sample_name</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">sample_id</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">so</span> <span class="o">=</span> <span class="n">SpatialOmics</span><span class="p">()</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">ad</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">A</span> <span class="k">if</span> <span class="n">issparse</span><span class="p">(</span><span class="n">ad</span><span class="o">.</span><span class="n">X</span><span class="p">)</span> <span class="k">else</span> <span class="n">ad</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">ad</span><span class="o">.</span><span class="n">var</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+
+        <span class="n">so</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="p">{</span><span class="n">sample_name</span><span class="p">:</span> <span class="n">x</span><span class="p">}</span>
+        <span class="n">so</span><span class="o">.</span><span class="n">obs</span> <span class="o">=</span> <span class="p">{</span><span class="n">sample_name</span><span class="p">:</span> <span class="n">ad</span><span class="o">.</span><span class="n">obs</span><span class="p">}</span>
+        <span class="n">so</span><span class="o">.</span><span class="n">var</span> <span class="o">=</span> <span class="p">{</span><span class="n">sample_name</span><span class="p">:</span> <span class="n">ad</span><span class="o">.</span><span class="n">var</span><span class="p">}</span>
+        <span class="n">so</span><span class="o">.</span><span class="n">spl</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="n">sample_name</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="s1">&#39;spatial&#39;</span> <span class="ow">in</span> <span class="n">ad</span><span class="o">.</span><span class="n">obsm</span><span class="p">:</span>
+            <span class="n">coord</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">obsm</span><span class="p">[</span><span class="s1">&#39;spatial&#39;</span><span class="p">]</span>
+            <span class="n">coord</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">coord</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">so</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">sample_name</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span><span class="s1">&#39;y&#39;</span><span class="p">])</span>
+            <span class="n">so</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">sample_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">((</span><span class="n">so</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">sample_name</span><span class="p">],</span> <span class="n">coord</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">img_container</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">img</span> <span class="o">=</span> <span class="n">img_container</span><span class="p">[</span><span class="n">img_layer</span><span class="p">]</span>
+            <span class="n">so</span><span class="o">.</span><span class="n">images</span> <span class="o">=</span> <span class="p">{</span><span class="n">sample_name</span><span class="p">:</span> <span class="n">img</span><span class="p">}</span>
+
+            <span class="n">segmentations</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">segmentation_layers</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">img_container</span><span class="p">:</span>
+                    <span class="n">segmentations</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">i</span><span class="p">:</span><span class="n">img_container</span><span class="p">[</span><span class="n">i</span><span class="p">]})</span>
+            <span class="n">so</span><span class="o">.</span><span class="n">masks</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">sample_name</span><span class="p">:</span><span class="n">segmentations</span><span class="p">})</span>
+
+        <span class="k">return</span> <span class="n">so</span></div>
+
+<div class="viewcode-block" id="SpatialOmics.to_annData"><a class="viewcode-back" href="../../api/spatialOmics.spatialOmics.html#spatialOmics.spatialOmics.SpatialOmics.to_annData">[docs]</a>    <span class="k">def</span> <span class="nf">to_annData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+        <span class="n">one_adata</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">spatial_keys_so</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">],</span>
+        <span class="n">spatial_key_ad</span><span class="o">=</span><span class="s1">&#39;spatial&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Converts the current SpatialOmics instance into a AnnData instance.</span>
+<span class="sd">        Does only takes .X, .obs and .var attributes into account.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            one_adata: bool whether for each sample a individual AnnData should be created</span>
+<span class="sd">            spatial_keys_so: tuple column names of spatial coordinates of observations in so.obs[spl]</span>
+<span class="sd">            spatial_key_ad: str key added to ad.obsm to store the spatial coordinates</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">anndata</span> <span class="kn">import</span> <span class="n">AnnData</span>
+        <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s1">&#39;Please install AnnData with `pip install anndata&#39;</span><span class="p">)</span>
+
+        <span class="n">so</span> <span class="o">=</span> <span class="bp">self</span>
+
+        <span class="k">if</span> <span class="n">one_adata</span><span class="p">:</span>
+            <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">so</span><span class="o">.</span><span class="n">obs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="c1"># we iterate through the keys to ensure that we have the order of the different dicts aligned</span>
+            <span class="c1"># we could apply pd.concat directly on the dicts</span>
+
+            <span class="n">X</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">so</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">])</span>
+            <span class="n">obs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">so</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">])</span>
+            <span class="n">obs</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">obs</span><span class="p">))</span>
+            <span class="n">var</span> <span class="o">=</span> <span class="n">so</span><span class="o">.</span><span class="n">var</span><span class="p">[</span><span class="n">keys</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+
+            <span class="c1"># create AnnData</span>
+            <span class="n">ad</span> <span class="o">=</span> <span class="n">AnnData</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">obs</span><span class="o">=</span><span class="n">obs</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="n">var</span><span class="p">)</span>
+
+            <span class="c1"># import spatial coordinates</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">i</span> <span class="ow">in</span> <span class="n">obs</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">spatial_keys_so</span><span class="p">]):</span>
+                <span class="n">spatial_coord</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">spatial_keys_so</span><span class="p">]</span>
+                <span class="n">ad</span><span class="o">.</span><span class="n">obs</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">obs</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">spatial_keys_so</span><span class="p">)</span>
+                <span class="n">ad</span><span class="o">.</span><span class="n">obsm</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">spatial_key_ad</span><span class="p">:</span> <span class="n">spatial_coord</span><span class="o">.</span><span class="n">values</span><span class="p">})</span>
+
+            <span class="k">return</span> <span class="n">ad</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ads</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">spl</span> <span class="ow">in</span> <span class="n">so</span><span class="o">.</span><span class="n">obs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+
+                <span class="c1"># create AnnData</span>
+                <span class="n">ad</span> <span class="o">=</span> <span class="n">AnnData</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="n">so</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">spl</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">obs</span><span class="o">=</span><span class="n">so</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">spl</span><span class="p">],</span> <span class="n">var</span><span class="o">=</span><span class="n">so</span><span class="o">.</span><span class="n">var</span><span class="p">[</span><span class="n">spl</span><span class="p">])</span>
+
+                <span class="c1"># import spatial coordinates</span>
+                <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">i</span> <span class="ow">in</span> <span class="n">ad</span><span class="o">.</span><span class="n">obs</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">spatial_keys_so</span><span class="p">]):</span>
+                    <span class="n">spatial_coord</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="n">spatial_keys_so</span><span class="p">]</span>
+                    <span class="n">ad</span><span class="o">.</span><span class="n">obs</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">obs</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">spatial_keys_so</span><span class="p">)</span>
+                    <span class="n">ad</span><span class="o">.</span><span class="n">obsm</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">spatial_key_ad</span><span class="p">:</span> <span class="n">spatial_coord</span><span class="o">.</span><span class="n">values</span><span class="p">})</span>
+
+                <span class="n">ads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ad</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">ads</span></div></div>
+
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright IBM Corp. 2021.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
