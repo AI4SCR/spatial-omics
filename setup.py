@@ -5,15 +5,6 @@ import re
 from pkg_resources import parse_requirements
 from setuptools import find_packages, setup
 
-def install_requires():
-    req = []
-    with open('requirements.txt', 'r') as f:
-        for l in f:
-            if l.startswith('#'):
-                continue
-            else:
-                req.append(l.replace('\n', ''))
-    return req
 
 def read_version(filepath: str) -> str:
     """Read the __version__ variable from the file.
@@ -47,24 +38,19 @@ except FileNotFoundError:
     print("requirements.txt not found.")
     VCS_REQUIREMENTS = []
 
-# TODO: Update these values according to the name of the module.
 setup(
-    name="spatialOmics",
+    name="ai4scr-spatial-omics",
     version=read_version("spatialOmics/__init__.py"),  # single place for version
-    description="Installable spatialOmics package. Modify as needed.",
-    long_description=open("README.md").read(),
-    url="https://github.ibm.com/art-zurich/spatial-omics",
-    author="Antonio Foncubierta Rodríguez, Matteo Manica, Joris Cadow",
-    author_email="fra@zurich.ibm.com, tte@zurich.ibm.com, dow@zurich.ibm.com",
+    description="Installable spatialOmics package",
+    long_description="todo",
+    long_description_content_type='text/markdown',
+    url="https://github.com/AI4SCR/spatial-omics",
+    author="Adriano Martinelli",
+    author_email="art@zurich.ibm.com",
     # the following exclusion is to prevent shipping of tests.
     # if you do include them, add pytest to the required packages.
     packages=find_packages(".", exclude=["*tests*"]),
     package_data={"spatialOmics": ["py.typed"]},
-    entry_points="""
-        [console_scripts]
-        salutation=spatialOmics.complex_module.core:formal_introduction
-    """,
-    scripts=["bin/brief_salutation", "bin/a_shell_script"],
     extras_require={
         "vcs": VCS_REQUIREMENTS,
         "test": ["pytest", "pytest-cov"],
@@ -88,5 +74,14 @@ setup(
     # versions should be very loose here, just exclude unsuitable versions
     # because your dependencies also have dependencies and so on ...
     # being too strict here will make dependency resolution harder
-    install_requires=install_requires()
+    install_requires=[
+        'numpy>=1.22',
+        'pandas>=1.2',
+        'scikit-image>=0.19.2',
+        'seaborn>=0.11.2',
+        'tqdm>=4.64.0',
+        'h5py>=3.6.0',
+        'tables>=3.7.0',
+        'scikit-learn>=1.0.2'
+    ]
 )

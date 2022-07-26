@@ -102,32 +102,39 @@ class SpatialOmics:
 
     def __str__(self):
         l = [len(self.obs[i]) for i in self.obs]
-        a0 = [self.X[i].shape[0] for i in self.X]
-        a1 = [self.X[i].shape[1] for i in self.X]
 
         cols_spl = self.spl.columns.to_list()
 
         cols_obs = set()
         [cols_obs.update((self.obs[i].columns)) for i in self.obs]
+        cols_obs = [*cols_obs]
 
         cols_var = set()
         [cols_var.update((self.var[i].columns)) for i in self.var]
+        cols_var = [*cols_var]
 
         mask_names = set()
         [mask_names.update((self.masks[i].keys())) for i in self.masks]
+        mask_names = [mask_names]
 
         graph_names = set()
         [graph_names.update((self.G[i].keys())) for i in self.G]
+        graph_names = [*graph_names]
 
         s = f"""
-SpatialOmics object with n_obs {sum(l)}
-    X: {len(self.X)}, ({min(a0)}, {max(a0)}) x ({min(a1)}, {max(a1)})
-    spl: {len(self.spl)}, {cols_spl}
-    obs: {len(self.spl)}, {cols_obs}
-    var: {len(self.var)}, {cols_var}
-    G: {len(self.G)}, {graph_names}
-    masks: {len(self.masks)}, {mask_names}
-    images: {len(self.images)}"""
+SpatialOmics object with {sum(l)} observations across {len(l)} samples.
+    X: {len(self.X)} samples,
+    spl: {len(self.spl)} samples,
+        columns: {cols_spl}
+    obs: {len(self.spl)} samples,
+        columns: {cols_obs}
+    var: {len(self.var)} samples,
+        columns: {cols_var}
+    G: {len(self.G)} samples,
+        keys: {graph_names}
+    masks: {len(self.masks)} samples
+        keys: {mask_names}
+    images: {len(self.images)} samples"""
         return s
 
     def __repr__(self):
@@ -168,6 +175,18 @@ SpatialOmics object with n_obs {sum(l)}
 
             # uns
             # TODO: currently we do not support storing uns to h5py due to datatype restrictions
+            if self.uns:
+                print(
+                    'warning: in the current implementation, the `uns` attribute is not stored to h5py file. Use `to_pickle` instead')
+                # f.attrs['uns'] = {}
+                # keys = self.uns.keys()
+                # print_warning = False
+                # for key in keys:
+                #     if key in ['cmaps', 'cmap_labels']:
+                #         f.attrs.update(self.uns[key])
+                #     else:
+                #         print_warning = True
+                # if print_warning:
 
         # we need to write the dataframes outside the context manager because the file is locked
         # spl
@@ -295,6 +314,7 @@ SpatialOmics object with n_obs {sum(l)}
         """copy IMCData without copying graphs, masks and tiffstacks"""
         c = copy.copy(self)
         c.obs = copy.deepcopy(self.obs)
+        c.spl = copy.deepcopy(self.spl)
         c.var = copy.deepcopy(self.var)
         c.X = copy.deepcopy(self.X)
         c.uns = copy.deepcopy(self.uns)
@@ -370,6 +390,11 @@ SpatialOmics object with n_obs {sum(l)}
         Returns:
 
         """
+
+        try:
+            from anndata import AnnData
+        except ImportError as e:
+            raise ImportError('Please install AnnData with `pip install anndata')
 
         so = self
 
